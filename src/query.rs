@@ -1,8 +1,13 @@
 use crate::msg::{
-    AskCountResponse,  AskResponse, AsksResponse,  BidResponse, BidsResponse,CollectionOffset, QueryMsg, CollectionOffsetBid, SaleHistoryOffset, SaleHistroyResponse, TvlResponse, TvlIndividualResponse, CollectionBidOffset, CollectionBidResponse, CollectionBidsResponse, SaleHistoryOffsetByUser
+    AskCountResponse, AskResponse, AsksResponse, BidResponse, BidsResponse, CollectionBidOffset,
+    CollectionBidResponse, CollectionBidsResponse, CollectionOffset, CollectionOffsetBid, QueryMsg,
+    SaleHistoryOffset, SaleHistoryOffsetByUser, SaleHistroyResponse, TvlIndividualResponse,
+    TvlResponse,
 };
 use crate::state::{
-    ask_key, asks, bid_key, bids,  BidKey, State, CONFIG, CollectionInfo, COLLECTIONINFO, MEMBERS, UserInfo, sale_history_key, sale_history, tvl,collection_bid_key,collection_bids
+    ask_key, asks, bid_key, bids, collection_bid_key, collection_bids, sale_history,
+    sale_history_key, tvl, BidKey, CollectionInfo, State, UserInfo, COLLECTIONINFO, CONFIG,
+    MEMBERS,
 };
 use cosmwasm_std::{entry_point, to_binary, Addr, Binary, Deps, Env, Order, StdResult, Uint128};
 use cw_storage_plus::{Bound, PrefixBound};
@@ -11,19 +16,16 @@ use cw_storage_plus::{Bound, PrefixBound};
 const DEFAULT_QUERY_LIMIT: u32 = 10;
 const MAX_QUERY_LIMIT: u32 = 30;
 
-
 #[entry_point]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let api = deps.api;
 
     match msg {
         QueryMsg::GetStateInfo {} => to_binary(&query_state_info(deps)?),
-        QueryMsg::GetMembers {
-          address
-        } => to_binary(&query_get_members(deps,address)?),
-        QueryMsg::GetCollectionInfo {
-           address 
-          } =>to_binary(&query_collection_info(deps,address)?),
+        QueryMsg::GetMembers { address } => to_binary(&query_get_members(deps, address)?),
+        QueryMsg::GetCollectionInfo { address } => {
+            to_binary(&query_collection_info(deps, address)?)
+        }
         QueryMsg::Ask {
             collection,
             token_id,
@@ -32,67 +34,34 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             collection,
             start_after,
             limit,
-        } => to_binary(&query_asks(
-            deps,
-            collection,
-            start_after,
-            limit,
-        )?),
+        } => to_binary(&query_asks(deps, collection, start_after, limit)?),
         QueryMsg::ReverseAsks {
             collection,
             start_before,
             limit,
-        } => to_binary(&reverse_query_asks(
-            deps,
-            collection,
-            start_before,
-            limit,
-        )?),
+        } => to_binary(&reverse_query_asks(deps, collection, start_before, limit)?),
         QueryMsg::AsksBySeller {
             seller,
             start_after,
             limit,
-        } => to_binary(&query_asks_by_seller(
-            deps,
-            seller,
-            start_after,
-            limit,
-        )?),
-        QueryMsg::AskCount { collection } => {
-            to_binary(&query_ask_count(deps, collection)?)
-        },
+        } => to_binary(&query_asks_by_seller(deps, seller, start_after, limit)?),
+        QueryMsg::AskCount { collection } => to_binary(&query_ask_count(deps, collection)?),
         QueryMsg::Bid {
             collection,
             token_id,
             bidder,
-        } => to_binary(&query_bid(
-            deps,
-            collection,
-            token_id,
-            bidder,
-        )?),
+        } => to_binary(&query_bid(deps, collection, token_id, bidder)?),
         QueryMsg::Bids {
             collection,
             token_id,
             start_after,
             limit,
-        } => to_binary(&query_bids(
-            deps,
-            collection,
-            token_id,
-            start_after,
-            limit,
-        )?),
+        } => to_binary(&query_bids(deps, collection, token_id, start_after, limit)?),
         QueryMsg::BidsByBidder {
             bidder,
             start_after,
             limit,
-        } => to_binary(&query_bids_by_bidder(
-            deps,
-            bidder,
-            start_after,
-            limit,
-        )?),
+        } => to_binary(&query_bids_by_bidder(deps, bidder, start_after, limit)?),
         QueryMsg::BidsByBidderSortedByExpiration {
             bidder,
             start_after,
@@ -104,21 +73,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             limit,
         )?),
         QueryMsg::BidsBySeller {
-           seller,
-           start_after,
-           limit 
-         }  => to_binary(&query_bids_by_seller(
-            deps,
             seller,
             start_after,
             limit,
-        )?),
-        QueryMsg::CollectionBid { collection, bidder } => to_binary(&query_collection_bid(
-            deps,
-            collection,
-            bidder,
-        )?),
-          QueryMsg::CollectionBidsByBidder {
+        } => to_binary(&query_bids_by_seller(deps, seller, start_after, limit)?),
+        QueryMsg::CollectionBid { collection, bidder } => {
+            to_binary(&query_collection_bid(deps, collection, bidder)?)
+        }
+        QueryMsg::CollectionBidsByBidder {
             bidder,
             start_after,
             limit,
@@ -139,108 +101,93 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             limit,
         )?),
         QueryMsg::SaleHistoryByCollection {
-           collection,
-           start_after,
-           limit
-         } => to_binary(&query_sale_history(
-             deps,
-             collection,
-             start_after,
-             limit
-           )?),
-        QueryMsg::SaleHistoryByTokenId { 
-          collection,
-          token_id,
-          start_after, 
-          limit 
+            collection,
+            start_after,
+            limit,
+        } => to_binary(&query_sale_history(deps, collection, start_after, limit)?),
+        QueryMsg::SaleHistoryByTokenId {
+            collection,
+            token_id,
+            start_after,
+            limit,
         } => to_binary(&query_sale_history_by_token_id(
-          deps,
-          collection,
-          token_id,
-          start_after,
-          limit
+            deps,
+            collection,
+            token_id,
+            start_after,
+            limit,
         )?),
         QueryMsg::GetTvlbyCollection {
-          collection,
-          start_after ,
-          limit
+            collection,
+            start_after,
+            limit,
         } => to_binary(&query_tvl_by_collection(
-          deps,
-          collection, 
-          start_after, 
-          limit)?),
-        QueryMsg::GetTvlByDenom { 
-          denom, 
-          start_after, 
-          limit 
-        } => to_binary(&query_tvl_by_denom(
-          deps,
-          denom,
-          start_after,
-          limit
+            deps,
+            collection,
+            start_after,
+            limit,
         )?),
-        QueryMsg::GetTvlIndividaul { 
-          collection, 
-          denom 
-        } => to_binary(&query_tvl_by_individual(
-          deps,
-          collection,
-          denom
-        )?),
-        QueryMsg::GetSaleHistoryByBuyer { 
-          buyer, 
-          start_after, 
-          limit 
+        QueryMsg::GetTvlByDenom {
+            denom,
+            start_after,
+            limit,
+        } => to_binary(&query_tvl_by_denom(deps, denom, start_after, limit)?),
+        QueryMsg::GetTvlIndividaul { collection, denom } => {
+            to_binary(&query_tvl_by_individual(deps, collection, denom)?)
+        }
+        QueryMsg::GetSaleHistoryByBuyer {
+            buyer,
+            start_after,
+            limit,
         } => to_binary(&query_sale_history_by_buyer(
-          deps,
-          buyer,
-          start_after,
-          limit
+            deps,
+            buyer,
+            start_after,
+            limit,
         )?),
-        QueryMsg::GetSaleHistoryBySeller { 
-          seller, 
-          start_after, 
-          limit 
+        QueryMsg::GetSaleHistoryBySeller {
+            seller,
+            start_after,
+            limit,
         } => to_binary(&query_sale_history_by_seller(
-          deps,
-          seller,
-          start_after,
-          limit
+            deps,
+            seller,
+            start_after,
+            limit,
         )?),
-        QueryMsg::CollectionBidByCollection {collection, start_after, limit } => to_binary(&query_collection_bid_by_collection(
-          deps,
-          collection,
-          start_after,
-          limit
-        )?)  
+        QueryMsg::CollectionBidByCollection {
+            collection,
+            start_after,
+            limit,
+        } => to_binary(&query_collection_bid_by_collection(
+            deps,
+            collection,
+            start_after,
+            limit,
+        )?),
     }
 }
 
-pub fn query_state_info(deps:Deps) -> StdResult<State>{
-    let state =  CONFIG.load(deps.storage)?;
+pub fn query_state_info(deps: Deps) -> StdResult<State> {
+    let state = CONFIG.load(deps.storage)?;
     Ok(state)
 }
 
-pub fn query_collection_info(deps:Deps,address:String) -> StdResult<CollectionInfo>{
-    let collection_info =  COLLECTIONINFO.load(deps.storage,&address)?;
+pub fn query_collection_info(deps: Deps, address: String) -> StdResult<CollectionInfo> {
+    let collection_info = COLLECTIONINFO.load(deps.storage, &address)?;
     Ok(collection_info)
 }
 
-
-pub fn query_get_members(deps:Deps,address:String) -> StdResult<Vec<UserInfo>>{
-    let members = MEMBERS.load(deps.storage,&address)?;
+pub fn query_get_members(deps: Deps, address: String) -> StdResult<Vec<UserInfo>> {
+    let members = MEMBERS.load(deps.storage, &address)?;
     Ok(members)
 }
-
-
-
 
 pub fn query_ask(deps: Deps, collection: String, token_id: String) -> StdResult<AskResponse> {
     let ask = asks().may_load(deps.storage, ask_key(&collection, &token_id))?;
 
     Ok(AskResponse { ask })
 }
-
 
 pub fn query_asks(
     deps: Deps,
@@ -337,7 +284,6 @@ pub fn query_asks_by_seller(
     Ok(AsksResponse { asks })
 }
 
-
 pub fn query_bid(
     deps: Deps,
     collection: String,
@@ -415,7 +361,12 @@ pub fn query_bids_by_bidder_sorted_by_expiry(
         Some(offset) => {
             deps.api.addr_validate(&offset.collection)?;
             let collection = offset.collection;
-            let bid = query_bid(deps, collection.clone(), offset.token_id.clone(), bidder.clone())?;
+            let bid = query_bid(
+                deps,
+                collection.clone(),
+                offset.token_id.clone(),
+                bidder.clone(),
+            )?;
             match bid.bid {
                 Some(bid) => Some(Bound::exclusive((
                     bid.expires_at.seconds(),
@@ -439,7 +390,6 @@ pub fn query_bids_by_bidder_sorted_by_expiry(
     Ok(BidsResponse { bids })
 }
 
-
 pub fn query_bids_by_seller(
     deps: Deps,
     seller: String,
@@ -451,7 +401,11 @@ pub fn query_bids_by_seller(
     let start = if let Some(start) = start_after {
         deps.api.addr_validate(&start.collection)?;
         let collection = start.collection;
-        Some(Bound::exclusive(bid_key(&collection, &start.token_id, &start.bidder)))
+        Some(Bound::exclusive(bid_key(
+            &collection,
+            &start.token_id,
+            &start.bidder,
+        )))
     } else {
         None
     };
@@ -467,7 +421,6 @@ pub fn query_bids_by_seller(
 
     Ok(BidsResponse { bids })
 }
-
 
 pub fn query_sale_history(
     deps: Deps,
@@ -496,7 +449,7 @@ pub fn query_sale_history(
         .map(|item| item.map(|(_, b)| b))
         .collect::<StdResult<Vec<_>>>()?;
 
-    Ok(SaleHistroyResponse {  sale_history })
+    Ok(SaleHistroyResponse { sale_history })
 }
 
 pub fn query_sale_history_by_token_id(
@@ -529,14 +482,13 @@ pub fn query_sale_history_by_token_id(
     Ok(SaleHistroyResponse { sale_history })
 }
 
-
 pub fn query_sale_history_by_buyer(
     deps: Deps,
     buyer: String,
     start_after: Option<SaleHistoryOffsetByUser>,
     limit: Option<u32>,
 ) -> StdResult<SaleHistroyResponse> {
-   let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
+    let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
 
     let start = if let Some(start) = start_after {
         Some(Bound::exclusive(sale_history_key(
@@ -557,9 +509,8 @@ pub fn query_sale_history_by_buyer(
         .map(|item| item.map(|(_, b)| b))
         .collect::<StdResult<Vec<_>>>()?;
 
-    Ok(SaleHistroyResponse {  sale_history })
+    Ok(SaleHistroyResponse { sale_history })
 }
-
 
 pub fn query_sale_history_by_seller(
     deps: Deps,
@@ -567,7 +518,7 @@ pub fn query_sale_history_by_seller(
     start_after: Option<SaleHistoryOffsetByUser>,
     limit: Option<u32>,
 ) -> StdResult<SaleHistroyResponse> {
-   let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
+    let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
 
     let start = if let Some(start) = start_after {
         Some(Bound::exclusive(sale_history_key(
@@ -588,9 +539,8 @@ pub fn query_sale_history_by_seller(
         .map(|item| item.map(|(_, b)| b))
         .collect::<StdResult<Vec<_>>>()?;
 
-    Ok(SaleHistroyResponse {  sale_history })
+    Ok(SaleHistroyResponse { sale_history })
 }
-
 
 pub fn query_tvl_by_collection(
     deps: Deps,
@@ -620,8 +570,6 @@ pub fn query_tvl_by_collection(
     Ok(TvlResponse { tvl })
 }
 
-
-
 pub fn query_tvl_by_denom(
     deps: Deps,
     denom: String,
@@ -636,10 +584,7 @@ pub fn query_tvl_by_denom(
         .prefix(denom.clone())
         .range(
             deps.storage,
-            Some(Bound::exclusive((
-              start_after.unwrap_or_default(),  
-              denom
-            ))),
+            Some(Bound::exclusive((start_after.unwrap_or_default(), denom))),
             None,
             Order::Ascending,
         )
@@ -651,15 +596,14 @@ pub fn query_tvl_by_denom(
 }
 
 pub fn query_tvl_by_individual(
-  deps: Deps,
-  collection: String,
-  denom: String
-) -> StdResult<TvlIndividualResponse>{
-  let tvl = tvl().may_load(deps.storage, (collection,denom))?;
-  
-  Ok(TvlIndividualResponse{ tvl })
-}
+    deps: Deps,
+    collection: String,
+    denom: String,
+) -> StdResult<TvlIndividualResponse> {
+    let tvl = tvl().may_load(deps.storage, (collection, denom))?;
 
+    Ok(TvlIndividualResponse { tvl })
+}
 
 pub fn query_collection_bid(
     deps: Deps,
@@ -671,7 +615,6 @@ pub fn query_collection_bid(
     Ok(CollectionBidResponse { bid })
 }
 
-
 pub fn query_collection_bids_by_bidder(
     deps: Deps,
     bidder: String,
@@ -681,9 +624,9 @@ pub fn query_collection_bids_by_bidder(
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
     let start: Option<Bound<(String, String)>> = match start_after {
         Some(offset) => {
-             deps.api.addr_validate(&offset.collection)?;
-             let collection = offset.collection;
-             Some(Bound::exclusive((collection, bidder.clone())))
+            deps.api.addr_validate(&offset.collection)?;
+            let collection = offset.collection;
+            Some(Bound::exclusive((collection, bidder.clone())))
         }
         None => None,
     };
@@ -739,8 +682,6 @@ pub fn query_collection_bids_by_bidder_sorted_by_expiry(
     Ok(CollectionBidsResponse { bids })
 }
 
-
-
 pub fn query_collection_bid_by_collection(
     deps: Deps,
     collection: String,
@@ -750,9 +691,9 @@ pub fn query_collection_bid_by_collection(
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
     let start: Option<Bound<(String, String)>> = match start_after {
         Some(start) => {
-             deps.api.addr_validate(&collection)?;
-             let collection = collection.clone();
-             Some(Bound::exclusive((collection, start.clone())))
+            deps.api.addr_validate(&collection)?;
+            let collection = collection.clone();
+            Some(Bound::exclusive((collection, start.clone())))
         }
         None => None,
     };

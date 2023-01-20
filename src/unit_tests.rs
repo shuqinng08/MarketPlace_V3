@@ -1204,5 +1204,10 @@ fn accept_collection_bid(){
   println!("{:?}",tvl);
 
   let sale_history = query_sale_history(deps.as_ref(), "collection1".to_string(), None, Some(20)).unwrap();
-  println!("{:?}",sale_history)
+  println!("{:?}",sale_history);
+
+  let mut env = mock_env();
+  println!("{:?}",env.block.time.seconds());
+  env.block.time = env.block.time.plus_seconds(3500);
+  println!("{:?}",env.block.time.seconds())
 }

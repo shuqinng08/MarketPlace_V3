@@ -1531,7 +1531,7 @@ fn execute_set_offerings(
             token_id: offering.token_id.clone(),
             seller: offering.seller,
             list_price: offering.list_price,
-            expires_at: Timestamp::from_seconds(env.block.time.seconds() + 259200),
+            expires_at: Timestamp::from_seconds(env.block.time.seconds() + 31536000),
             collection: nft_address.clone()
         };
 

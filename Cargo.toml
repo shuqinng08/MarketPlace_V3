@@ -1,5 +1,5 @@
 [package]
-name = "Hope_MarketPlace"
+name = "Hope_MarketPlace_Offer"
 version = "0.1.0"
 authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
